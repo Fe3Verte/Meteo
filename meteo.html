@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meteo Lombardia</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#eef3f4;--cd:#fff;--tx:#12262b;--mu:#587078;--ac:#0f6e7a;--bd:#d7e2e4;--ok:#1b8a52;--wa:#b87500;--bad:#bf3b2b;--rg:#bfe0e4;
+font-family:"Instrument Sans",system-ui,-apple-system,sans-serif;color:var(--tx);background:var(--bg);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#0c1a1d;--cd:#14272b;--tx:#e6f0f1;--mu:#8fa9ae;--ac:#5cc3cf;--bd:#23393e;--ok:#4cc88b;--wa:#e5a73a;--bad:#ef7a6b;--rg:#1d4a52}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg)}
+main{max-width:640px;margin:0 auto;padding:14px 14px 40px}
+.top{display:flex;gap:8px}
+select,button{font:inherit;color:var(--tx);background:var(--cd);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;min-height:44px}
+select{flex:1}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid var(--ac)}
+.hero{margin:18px 2px 6px}
+.hero .t{font-size:84px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.hero .d{font-size:18px;color:var(--mu);margin-top:4px}
+.hero small{display:block;color:var(--mu);margin-top:2px}
+.conf{display:inline-block;margin-top:10px;padding:5px 11px;border-radius:99px;font-weight:600;font-size:14px;border:1.5px solid currentColor}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chip{background:var(--cd);border:1px solid var(--bd);border-left:4px solid var(--wa);border-radius:8px;padding:8px 11px;font-size:14px}
+h2{font-size:16px;margin:22px 2px 8px}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:14px;padding:12px}
+.hrs{display:flex;gap:2px;overflow-x:auto;padding:2px 0}
+.h{flex:0 0 54px;text-align:center;font-size:13px}.h b{display:block;font-size:16px}.h i{font-style:normal;color:var(--ac);font-size:12px;display:block;min-height:15px}
+.dy{display:grid;grid-template-columns:62px 28px 34px 1fr 34px 40px;gap:6px;align-items:center;padding:9px 0;border-top:1px solid var(--bd);font-size:14px}
+.dy:first-child{border-top:0}.dy .mu{color:var(--mu)}
+.bar{position:relative;height:8px;background:var(--rg);border-radius:9px}.bar span{position:absolute;top:0;bottom:0;background:var(--ac);border-radius:9px}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:7px 4px;text-align:right;border-top:1px solid var(--bd)}th{color:var(--mu);font-weight:600}td:first-child,th:first-child{text-align:left}
+.note{font-size:12.5px;color:var(--mu);margin-top:18px;line-height:1.5}
+.msg{padding:30px 10px;text-align:center;color:var(--mu)}
+</style></head><body><main>
+<div class="top"><select id="c" aria-label="Località"></select><button id="g" aria-label="Usa la mia posizione">📍</button></div>
+<div id="o"><div class="msg">Caricamento previsioni…</div></div>
+<p class="note">Previsione elaborata fondendo fino a otto modelli numerici (ICON-2I di Arpae, ICON-D2, ICON-CH2, ICON-EU, ECMWF IFS e AIFS, Météo-France, GFS) tramite Open-Meteo. I modelli ad alta risoluzione pesano di più a breve termine e i valori anomali vengono ridotti di peso. La probabilità di pioggia e la fascia di temperatura derivano da oltre 100 membri ensemble; il nowcasting a 15 minuti copre le prossime 3 ore. Non sostituisce le allerte ufficiali: per temporali, piene e neve consulta Protezione Civile, ARPA Lombardia e Aeronautica Militare.</p>
+</main>
+<script>
+const L=[["Milano",45.4642,9.19],["Bergamo",45.6983,9.6773],["Brescia",45.5416,10.2118],["Como",45.81,9.0852],["Varese",45.8206,8.825],["Lecco",45.8566,9.3977],["Pavia",45.1847,9.1582],["Lodi",45.3142,9.5037],["Cremona",45.1333,10.0227],["Mantova",45.1564,10.7914],["Monza",45.5845,9.2744],["Sondrio",46.1699,9.8787],["Livigno",46.5376,10.1357],["Bormio",46.4668,10.37],["Sirmione (Garda)",45.4912,10.6076]];
+const R=[["Torino",45.0703,7.6869],["Genova",44.4056,8.9463],["Venezia",45.4408,12.3155],["Bologna",44.4949,11.3426],["Firenze",43.7696,11.2558],["Roma",41.9028,12.4964],["Napoli",40.8518,14.2681],["Bari",41.1171,16.8719],["Palermo",38.1157,13.3615],["Cagliari",39.2238,9.1217]];
+const B="italia_meteo_arpae_icon_2i,icon_eu,ecmwf_ifs025,meteofrance_seamless,gfs_seamless";
+const M=[["icon_d2","ICON-D2 (Alpi)",.35],["meteoswiss_icon_ch2","ICON-CH2",.2],["ecmwf_aifs025_single","ECMWF AIFS",.25],["italia_meteo_arpae_icon_2i","ICON-2I",.4],["icon_eu","ICON-EU",.25],["ecmwf_ifs025","ECMWF",.3],["meteofrance_seamless","Météo-France",.15],["gfs_seamless","GFS",.1]];
+const V=["temperature_2m","precipitation","wind_gusts_10m","cloud_cover","relative_humidity_2m","cape","freezing_level_height","snowfall","visibility"];
+const $=id=>document.getElementById(id),all=[...L,...R];
+let pl=L[0];
+$("c").innerHTML='<optgroup label="Lombardia">'+L.map((x,i)=>`<option value="${i}">${x[0]}</option>`).join("")+'</optgroup><optgroup label="Resto d’Italia">'+R.map((x,i)=>`<option value="${L.length+i}">${x[0]}</option>`).join("")+'</optgroup>';
+try{const s=localStorage.getItem("citta");if(s&&all[s]){$("c").value=s;pl=all[s]}}catch(e){}
+$("c").onchange=e=>{pl=all[e.target.value];try{localStorage.setItem("citta",e.target.value)}catch(x){}load()};
+$("g").onclick=()=>navigator.geolocation?.getCurrentPosition(p=>{pl=["La tua posizione",p.coords.latitude,p.coords.longitude];load()},()=>alert("Posizione non disponibile: scegli una località dall’elenco."));
+const ws=[];// pesi
+const F={temperature_2m:1,precipitation:.3,wind_gusts_10m:6,cloud_cover:15,relative_humidity_2m:6,cape:200,freezing_level_height:200,snowfall:.3,visibility:2000};
+function blend(d,v,i){let s=0,w=0,x=[],vals={};for(const[k,n,p]of M){const a=d[v+"_"+k];if(a&&a[i]!=null){x.push([a[i],p]);vals[k]=a[i];s+=a[i]*p;w+=p}}
+ if(!w)return null;const m0=s/w;let q0=0;for(const[a,p]of x)q0+=p*(a-m0)**2;const sc=Math.max(Math.sqrt(q0/w),F[v]||1);
+ let s2=0,w2=0;for(const[a,p]of x){const k=p/(1+((a-m0)/(2*sc))**2);s2+=a*k;w2+=k}
+ const m=s2/w2;let q=0;for(const[a,p]of x)q+=p*(a-m)**2;return{m,sd:Math.sqrt(q/w),n:x.length,vals,x,w}}
+function prob(b){if(!b)return 0;return b.x.reduce((t,[a,p])=>t+(a>=.2?p:0),0)/b.w}
+const ico=(c,p,t,pr)=>pr>.5&&p>=.3?(t<=1?"🌨️":"🌧️"):pr>.5?"🌦️":c<20?"☀️":c<45?"🌤️":c<70?"⛅":"☁️";
+const gd=["dom","lun","mar","mer","gio","ven","sab"];
+async function load(){
+ $("o").innerHTML='<div class="msg">Caricamento previsioni per '+pl[0]+'…</div>';
+ try{
+  const q=`latitude=${pl[1]}&longitude=${pl[2]}`,tz="&timezone=Europe%2FRome";
+  const g=(h,pp)=>fetch(`https://${h}.open-meteo.com/v1/${pp}&${q}${tz}`).then(r=>r.ok?r.json():null).catch(()=>null);
+  const ex=Promise.all([g("ensemble-api","ensemble?models=ecmwf_ifs025,icon_eu,gfs025&hourly=temperature_2m,precipitation&forecast_days=7"),g("api","forecast?minutely_15=precipitation&forecast_minutely_15=12"),g("air-quality-api","air-quality?current=pm10,pm2_5,european_aqi")]);
+  const U=ms=>`https://api.open-meteo.com/v1/forecast?${q}&hourly=${V.join()}&models=${ms}${tz}&forecast_days=7`;
+  let r=await fetch(U(M.map(m=>m[0]).join()));if(!r.ok)r=await fetch(U(B));if(!r.ok)throw 0;
+  const j=await r.json(),d=j.hourly,T=d.time,[en,nc,aq]=await ex;
+  const ep={},et={};
+  if(en?.hourly){const e=en.hourly,ks=Object.keys(e),pk=ks.filter(k=>k.startsWith("precipitation")),tk=ks.filter(k=>k.startsWith("temperature_2m"));
+   e.time.forEach((t,i)=>{const a=pk.map(k=>e[k][i]).filter(x=>x!=null),b=tk.map(k=>e[k][i]).filter(x=>x!=null).sort((x,y)=>x-y);
+    if(a.length>5)ep[t]=a.filter(x=>x>=.2).length/a.length;if(b.length>5)et[t]=[b[Math.floor(b.length*.1)],b[Math.floor(b.length*.9)]]})}
+  let nw="";if(nc?.minutely_15?.precipitation){const a=nc.minutely_15.precipitation,i=a.findIndex(x=>x>=.1);
+   nw=i<0?"☂️ Nessuna pioggia nelle prossime 3 ore":i==0?"🌧️ Pioggia in corso: "+a.reduce((t,x)=>t+(x||0),0).toFixed(1)+" mm attesi nelle prossime 3 ore":"🌧️ Pioggia in arrivo tra circa "+i*15+" minuti"}
+  const H=T.map((t,i)=>{const t2=blend(d,V[0],i),p=blend(d,V[1],i),g=blend(d,V[2],i),c=blend(d,V[3],i),u=blend(d,V[4],i),cp=blend(d,V[5],i),fz=blend(d,V[6],i),sn=blend(d,V[7],i),vs=blend(d,V[8],i);
+   return{t,tm:t2?.m,sd:t2?.sd??0,p:p?.m??0,pr:ep[t]!=null?.65*ep[t]+.35*prob(p):prob(p),g:g?.m??0,c:c?.m??0,u:u?.m??0,cp:cp?.m??0,fz:fz?.m,sn:sn?.m??0,vs:vs?.m,e:et[t]}}).filter(h=>h.tm!=null);
+  const now=new Date().toLocaleString("sv-SE",{timeZone:"Europe/Rome"}).slice(0,13).replace(" ","T");
+  let k=H.findIndex(h=>h.t.slice(0,13)>=now);if(k<0)k=0;const c=H[k],nx=H.slice(k,k+24);
+  const sdm=nx.reduce((a,h)=>a+h.sd,0)/nx.length,unc=nx.some(h=>h.pr>.3&&h.pr<.7);const sc=sdm+(unc?1.2:0);
+  const cf=sc<1.3?["Affidabilità alta","var(--ok)"]:sc<2.6?["Affidabilità media","var(--wa)"]:["Affidabilità bassa","var(--bad)"];
+  const day={};H.forEach(h=>(day[h.t.slice(0,10)]??=[]).push(h));
+  const D=Object.entries(day).map(([k,a])=>({k,mn:Math.min(...a.map(h=>h.tm)),mx:Math.max(...a.map(h=>h.tm)),p:a.reduce((s,h)=>s+h.p,0),pr:Math.max(...a.map(h=>h.pr)),g:Math.max(...a.map(h=>h.g)),c:a.reduce((s,h)=>s+h.c,0)/a.length}));
+  const gmn=Math.min(...D.map(x=>x.mn)),gmx=Math.max(...D.map(x=>x.mx)),sp=gmx-gmn||1;
+  const al=[];const t1=D[0],nx2=D.slice(0,2);
+  if(Math.max(...nx.map(h=>h.g))>=50)al.push("💨 Raffiche fino a "+Math.round(Math.max(...nx.map(h=>h.g)))+" km/h nelle prossime 24 ore");
+  if(nx.some(h=>h.vs>0?h.vs<1000:h.u>=95&&h.g<15&&h.c<60)&&pl[1]<45.7)al.push("🌫️ Possibile nebbia in pianura (umidità alta, vento debole)");
+  if(nx2.some(x=>x.mn<=0))al.push("🧊 Rischio gelate: minima sotto 0 °C");
+  if(nx2.some(x=>x.p>=20))al.push("🌧️ Piogge abbondanti previste: oltre 20 mm in un giorno");
+  if(nx.some(h=>h.cp>=800&&h.pr>.4))al.push("⛈️ Rischio temporali: energia convettiva fino a "+Math.round(Math.max(...nx.map(h=>h.cp)))+" J/kg");
+  const sn=H.slice(k,k+72).filter(h=>h.sn>.1);if(sn.length){const z=Math.min(...sn.map(h=>h.fz??9e3))-300,cm=sn.reduce((t,h)=>t+h.sn,0);al.push("❄️ Neve nelle prossime 72 ore: circa "+cm.toFixed(0)+" cm"+(z<9e3?", quota neve intorno a "+Math.round(z/50)*50+" m":""))}
+  if(aq?.current?.european_aqi>=60)al.push("😷 Qualità dell’aria scadente (PM10 "+Math.round(aq.current.pm10)+" µg/m³)");
+  if(!al.length)al.push("✅ Nessun segnale critico nelle prossime 24 ore");
+  const mt=M.map(([key,n])=>{const ix=H.length?T.map((t,i)=>i).filter(i=>T[i].startsWith(t1.k)&&d["temperature_2m_"+key]?.[i]!=null):[];
+   if(!ix.length)return`<tr><td>${n}</td><td colspan=2 class="mu">non disponibile</td></tr>`;
+   const tt=ix.map(i=>d["temperature_2m_"+key][i]),pp=ix.reduce((s,i)=>s+(d["precipitation_"+key]?.[i]||0),0);
+   return`<tr><td>${n}</td><td>${Math.round(Math.min(...tt))}° / ${Math.round(Math.max(...tt))}°</td><td>${pp.toFixed(1)} mm</td></tr>`}).join("");
+  $("o").innerHTML=`<div class="hero"><div class="t">${Math.round(c.tm)}°</div><div class="d">${ico(c.c,c.p,c.tm,c.pr)} ${pl[0]} · ${Math.round(c.pr*100)}% prob. pioggia</div><small>${c.e?"Fascia probabile "+Math.round(c.e[0])+"°–"+Math.round(c.e[1])+"° (80% dei membri ensemble) · ":""}Umidità ${Math.round(c.u)}% · raffiche ${Math.round(c.g)} km/h · nuvolosità ${Math.round(c.c)}%</small><span class="conf" style="color:${cf[1]}">${cf[0]} (scarto modelli ±${sdm.toFixed(1)} °C)</span></div>
+  <div class="chips">${nw?`<div class="chip" style="border-left-color:var(--ac)">${nw}</div>`:""}${al.map(a=>`<div class="chip">${a}</div>`).join("")}</div>
+  <h2>Prossime 24 ore</h2><div class="card hrs">${nx.map(h=>`<div class="h">${h.t.slice(11,13)}<br><b>${Math.round(h.tm)}°</b><i>${h.pr>.3?Math.round(h.pr*100)+"%":""}</i></div>`).join("")}</div>
+  <h2>7 giorni</h2><div class="card">${D.map((x,i)=>`<div class="dy"><b>${i?gd[new Date(x.k+"T12:00").getDay()]+" "+x.k.slice(8):"Oggi"}</b><span>${ico(x.c,x.p,x.mn,x.pr)}</span><span class="mu">${Math.round(x.mn)}°</span><div class="bar"><span style="left:${(x.mn-gmn)/sp*100}%;right:${100-(x.mx-gmn)/sp*100}%"></span></div><b>${Math.round(x.mx)}°</b><span class="mu">${x.p>=.5?x.p.toFixed(0)+" mm":""}</span></div>`).join("")}</div>
+  <h2>Cosa dicono i modelli oggi</h2><div class="card"><table><tr><th>Modello</th><th>Min / Max</th><th>Pioggia</th></tr>${mt}</table></div>`;
+ }catch(e){$("o").innerHTML='<div class="msg">Impossibile scaricare i dati meteo. Controlla la connessione e <button onclick="load()">riprova</button></div>'}}
+load();
+</script></body></html>
